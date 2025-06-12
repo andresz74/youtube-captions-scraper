@@ -20,12 +20,14 @@ export async function getSubtitles({ videoID, lang = 'en' }) {
   const data = await fetchData(
     `https://youtube.com/watch?v=${videoID}`
   );
+  console.log('Contains ytInitialPlayerResponse:', data.includes('ytInitialPlayerResponse'));
 
   // * ensure we have access to captions data
   if (!data.includes('captionTracks'))
     throw new Error(`Could not find captions for video: ${videoID}`);
 
   const ytMatch = data.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;/s);
+  console.log('ytMatch:', ytMatch ? '✅ Match found' : '❌ No match');
   if (!ytMatch) throw new Error(`Could not extract ytInitialPlayerResponse`);
 
   const playerResponse = JSON.parse(ytMatch[1]);
