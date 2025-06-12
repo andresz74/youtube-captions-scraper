@@ -8,21 +8,15 @@ import striptags from 'striptags';
 const fetchData =
   typeof fetch === 'function'
     ? async function fetchData(url) {
-        const response = await fetch(url);
-        return await response.text();
-      }
+      const response = await fetch(url);
+      return await response.text();
+    }
     : async function fetchData(url) {
-        const { data } = await axios.get(url);
-        return data;
-      };
+      const { data } = await axios.get(url);
+      return data;
+    };
 
-export async function getSubtitles({
-  videoID,
-  lang = 'en',
-}: {
-  videoID: string,
-  lang: 'en' | 'de' | 'fr' | void,
-}) {
+export async function getSubtitles({ videoID, lang = 'en' }) {
   const data = await fetchData(
     `https://youtube.com/watch?v=${videoID}`
   );
@@ -31,10 +25,16 @@ export async function getSubtitles({
   if (!data.includes('captionTracks'))
     throw new Error(`Could not find captions for video: ${videoID}`);
 
-  const regex =  /"captionTracks":(\[.*?\])/;
-  const [match] = regex.exec(data);
+  const ytMatch = data.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;/s);
+  if (!ytMatch) throw new Error(`Could not extract ytInitialPlayerResponse`);
 
-  const { captionTracks } = JSON.parse(`{${match}}`);
+  const playerResponse = JSON.parse(ytMatch[1]);
+  const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+  if (!captionTracks || !captionTracks.length) {
+    throw new Error(`Could not find captions for video: ${videoID}`);
+  }
+
   const subtitle =
     find(captionTracks, {
       vssId: `.${lang}`,
